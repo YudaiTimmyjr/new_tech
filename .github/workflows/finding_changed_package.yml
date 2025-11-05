@@ -1,0 +1,64 @@
+# Ref. https://github.com/abeja-inc/abeja-toolkit/pull/122
+
+on:
+  workflow_call:
+    outputs:
+      packages:
+        description: "List of changed packages"
+        value: ${{ jobs.find_changed_packages.outputs.packages }}
+
+jobs:
+  find_changed_packages:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.changed_packages.outputs.packages }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Finding changed packages
+        id: changed_packages
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BASE_SHA="${GITHUB_EVENT_PULL_REQUEST_BASE_SHA}"
+            HEAD_SHA="${GITHUB_EVENT_PULL_REQUEST_HEAD_SHA}"
+          else
+            git fetch origin --depth=2
+            BASE_SHA=$(git rev-parse "${GITHUB_SHA}^")
+            HEAD_SHA="${GITHUB_SHA}"
+          fi
+
+          echo "Comparing $BASE_SHA...$HEAD_SHA"
+          DIFF_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- '*.py')
+          echo "Modified Python files:"
+          echo "$DIFF_FILES"
+
+          PACKAGES=""
+          for file in $DIFF_FILES; do
+            dir=$(dirname "$file")
+            package_dir=""
+            while [ "$dir" != "." ] && [ "$dir" != "/" ]; do
+              if [ -f "$dir/pyproject.toml" ]; then
+                package_dir="$dir"
+                break
+              fi
+              dir=$(dirname "$dir")
+            done
+            if [ -n "$package_dir" ]; then
+              PACKAGES="$PACKAGES '$package_dir'"
+            fi
+          done
+
+          PACKAGES=$(echo "$PACKAGES" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+
+          echo "Changed packages:"
+          echo "$PACKAGES"
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT

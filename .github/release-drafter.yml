@@ -1,0 +1,80 @@
+name-template: 'v$RESOLVED_VERSION 🌈'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bug'
+  - title: '🔨 Change'
+    labels: 
+      - 'change'
+  - title: '💪 Enhancement'
+    labels: 
+      - 'enhancement'
+      - 'documentation'
+  - title: '📦 Dependencies'
+    labels:
+      - 'dependencies'
+  - title: '⚙️ CI/CD'
+    labels:
+      - 'cicd'
+  - title: '🧰 Other'
+    labels: 
+      - 'other'
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  default: patch
+template: |
+  ## Changes
+
+  $CHANGES
+
+  ## Contributors
+
+  $CONTRIBUTORS
+autolabeler:
+  - label: feature
+    branch:
+      - '/^(feat|feature)[/-].+/'
+  - label: bug
+    branch:
+      - '/^(fix)[/-].+/'
+  - label: change
+    branch:
+      - '/^(change|rename)[/-].+/'
+  - label: documentation
+    branch:
+      - '/^(doc)[/-].+/'
+    files:
+      - 'README*.md'
+      - '*.md'
+      - 'docs/*'
+  - label: enhancement
+    branch:
+      - '/^(test)[/-].+/'
+  - label: other
+    branch:
+      - '/^(chore|style|refactor)[/-].+/'
+  - label: cicd
+    files:
+      - '.github/workflows/**'
+  - label: dependencies
+    branch:
+      - '/^(dep|dependabot)[/-].+/'
+    files:
+      - 'pyproject.toml'
+      - 'poetry.lock'
+      - 'uv.lock'
+      - 'requirements*.txt'

@@ -1,0 +1,40 @@
+[project]
+name = "project"
+version = "0.1.0"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "notebook-exporter",
+    "notion-extension",
+    "project-module",
+    "spreadsheet",
+]
+
+[tool.uv]
+default-groups = "all"
+
+[tool.uv.sources]
+project-module = { workspace = true }
+notebook-exporter = { workspace = true }
+notion-extension = { workspace = true }
+spreadsheet = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "mypy~=1.15.0",
+    "ruff~=0.11.2",
+    "pytest~=8.4.1",
+    "pytest-cov~=6.2.1",
+    "pytest-mock~=3.12.0",
+]
+jupyter = [
+    "jupyterlab~=4.3.6",
+    "notebook~=7.3.3",
+]
+
+[tool.uv.workspace]
+members = [
+    "project_module",
+    "libs/abeja-toolkit/notion_extension",
+    "libs/abeja-toolkit/spreadsheet",
+    "libs/abeja-toolkit/notebook_exporter",
+]

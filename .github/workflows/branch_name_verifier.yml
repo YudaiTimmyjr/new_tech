@@ -1,0 +1,26 @@
+name: Branch Name Verifier
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - main
+      - develop
+      - 'release/**'
+
+jobs:
+  verify_branch_name:
+    name: Verify Branch Name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check:if PR is from topic to main branch
+        run: |
+          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+          HEAD_BRANCH="${{ github.event.pull_request.head.ref }}"
+
+          if [[ "$BASE_BRANCH" == "main" || "$BASE_BRANCH" == "develop" || "$BASE_BRANCH" =~ ^release\/.*$ ]] && [[ "$HEAD_BRANCH" =~ ^(feat|feature|fix|doc|refactor|style|rename|test|change|chore|dep|dependabot|release)[\/-].+ ]]; then
+            echo "Branch name was successfully verified for target branch: $BASE_BRANCH, exiting with code 0"
+          else
+            echo "Branch name is invalid for target branch: $BASE_BRANCH, see CONTRIBUTING.md, exiting with code 1"
+            exit 1
+          fi

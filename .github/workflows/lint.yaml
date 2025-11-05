@@ -1,0 +1,80 @@
+name: lint
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches:
+      - main
+
+jobs:
+  docker_lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for changes in Dockerfile
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            changed:
+              - "context/Dockerfile"
+
+      - name: Lint Dockerfile
+        if: steps.filter.outputs.changed == 'true'
+        uses: hadolint/hadolint-action@master
+        with:
+          dockerfile: "context/Dockerfile"
+          ignore: "DL3006,DL3008,DL3013"
+
+  find_changed_packages:
+    uses: ./.github/workflows/finding_changed_package.yml
+
+  lint_python_scripts:
+    needs: find_changed_packages
+    if: needs.find_changed_packages.outputs.packages != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v6.1.0
+        with:
+          version: "0.8.19"
+          # enable-cache: true  # TODO: Enable cache if needed. This option improves CI/CD performance
+        # NOTE: Ref. https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Installing dependencies
+        run: |
+          uv sync --dev --all-groups
+          # NOTE: `--all-groups` is specified to enable installing all dependencies
+          #       even in the case that custom groups are defined in `pyproject.toml`.
+
+      # NOTE: Not required to install dependencies of each updated package,
+      #       because `uv sync --dev --all-groups` installs all dependencies in the workspace.
+
+      - name: Running ruff and mypy
+        run: |
+          failures=0
+          for dir in ${{ needs.find_changed_packages.outputs.packages }}; do
+            echo "Running Ruff in $dir"
+            uv run ruff check --config ./ruff.toml "$dir" || failures=1
+            echo "Running mypy in $dir"
+            uv run mypy --config-file ./mypy.ini "$dir" || failures=1
+          done
+          exit $failures
